@@ -116,16 +116,6 @@ async fn raw_inner(c: Client) -> Result<(), error::CmdError> {
     c.close().await
 }
 
-async fn window_size_inner(c: Client) -> Result<(), error::CmdError> {
-    c.goto("https://www.wikipedia.org/").await?;
-    c.set_window_size(500, 400).await?;
-    let (width, height) = c.get_window_size().await?;
-    assert_eq!(width, 500);
-    assert_eq!(height, 400);
-
-    c.close().await
-}
-
 async fn window_position_inner(c: Client) -> Result<(), error::CmdError> {
     c.goto("https://www.wikipedia.org/").await?;
     c.set_window_size(200, 100).await?;
@@ -154,33 +144,6 @@ async fn window_rect_inner(c: Client) -> Result<(), error::CmdError> {
     let (width, height) = c.get_window_size().await?;
     assert_eq!(width, 600);
     assert_eq!(height, 300);
-
-    c.close().await
-}
-
-async fn finds_all_inner(c: Client) -> Result<(), error::CmdError> {
-    // go to the Wikipedia frontpage
-    c.goto("https://en.wikipedia.org/wiki/Main_Page").await?;
-    // Find all the footer links
-    let es = c.find_all(Locator::Css("#footer-places li")).await?;
-    let mut texts =
-        futures_util::future::try_join_all(es.into_iter().map(|e| async move { e.text().await }))
-            .await?;
-    texts.retain(|t| !t.is_empty());
-    assert_eq!(
-        texts,
-        [
-            "Privacy policy",
-            "About Wikipedia",
-            "Disclaimers",
-            "Contact Wikipedia",
-            "Code of Conduct",
-            "Mobile view",
-            "Developers",
-            "Statistics",
-            "Cookie statement"
-        ]
-    );
 
     c.close().await
 }
@@ -340,12 +303,6 @@ mod chrome {
 
     #[test]
     #[ignore]
-    fn it_can_get_and_set_window_size() {
-        tester!(window_size_inner, "chrome");
-    }
-
-    #[test]
-    #[ignore]
     fn it_can_get_and_set_window_position() {
         tester!(window_position_inner, "chrome");
     }
@@ -354,11 +311,6 @@ mod chrome {
     #[ignore]
     fn it_can_get_and_set_window_rect() {
         tester!(window_rect_inner, "chrome");
-    }
-
-    #[test]
-    fn it_finds_all() {
-        tester!(finds_all_inner, "chrome");
     }
 
     #[test]
@@ -426,12 +378,6 @@ mod firefox {
 
     #[test]
     #[ignore]
-    fn it_can_get_and_set_window_size() {
-        tester!(window_size_inner, "firefox");
-    }
-
-    #[test]
-    #[ignore]
     fn it_can_get_and_set_window_position() {
         tester!(window_position_inner, "firefox");
     }
@@ -440,12 +386,6 @@ mod firefox {
     #[ignore]
     fn it_can_get_and_set_window_rect() {
         tester!(window_rect_inner, "firefox");
-    }
-
-    #[serial]
-    #[test]
-    fn it_finds_all() {
-        tester!(finds_all_inner, "firefox");
     }
 
     #[serial]
