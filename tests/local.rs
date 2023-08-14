@@ -441,30 +441,50 @@ async fn dynamic_commands(c: Client, port: u16) -> Result<(), error::CmdError> {
 
 async fn finds_all_inner(c: Client, port: u16) -> Result<(), error::CmdError> {
     // go to the Wikipedia frontpage
-    let other_url = other_page_url(port);
-    c.goto(&other_url).await?;
+    let sample_url = sample_page_url(port);
+    c.goto(&sample_url).await?;
 
     // Find all the footer links
-    let es = c.find_all(Locator::Css("#footer-places li")).await?;
+    let es = c.find_all(Locator::Css("#footer-places-foo li")).await?;
     let mut texts =
         futures_util::future::try_join_all(es.into_iter().map(|e| async move { e.text().await }))
             .await?;
     texts.retain(|t| !t.is_empty());
+
     assert_eq!(
         texts,
-        [
-            "Privacy policy",
-            "About Wikipedia",
-            "Disclaimers",
-            "Contact Wikipedia",
-            "Code of Conduct",
-            "Mobile view",
-            "Developers",
-            "Statistics",
-            "Cookie statement"
-        ]
+        ["foo", "bar", "baz", "qux", "quux", "quuz", "qoox", "qooz"]
     );
 
+    c.close().await
+}
+
+async fn send_keys_and_clear_input_inner(c: Client, port: u16) -> Result<(), error::CmdError> {
+    // go to the Wikipedia frontpage this time
+    let sample_url = sample_page_url(port);
+    c.goto(&sample_url).await?;
+
+    // find search input element
+    let e = c.wait().for_element(Locator::Id("searchInput")).await?;
+    e.send_keys("foobar").await?;
+    assert_eq!(
+        e.prop("value")
+            .await?
+            .expect("input should have value prop")
+            .as_str(),
+        "foobar"
+    );
+
+    e.clear().await?;
+    assert_eq!(
+        e.prop("value")
+            .await?
+            .expect("input should have value prop")
+            .as_str(),
+        ""
+    );
+
+    let c = e.client();
     c.close().await
 }
 
@@ -607,6 +627,11 @@ mod firefox {
     fn finds_all_test() {
         local_tester!(finds_all_inner, "firefox");
     }
+    #[test]
+    #[serial]
+    fn send_keys_and_clear_input_inner_test() {
+        local_tester!(send_keys_and_clear_input_inner, "firefox");
+    }
 }
 
 mod chrome {
@@ -717,5 +742,9 @@ mod chrome {
     #[test]
     fn finds_all_test() {
         local_tester!(finds_all_inner, "chrome");
+    }
+    #[test]
+    fn send_keys_and_clear_input_inner_test() {
+        local_tester!(send_keys_and_clear_input_inner, "chrome");
     }
 }
